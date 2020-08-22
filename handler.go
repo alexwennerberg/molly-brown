@@ -49,11 +49,13 @@ func handleGeminiRequest(conn net.Conn, config Config, accessLogEntries chan Log
 	}
 
 	// Reject requests for content from other servers
-	if URL.Hostname() != config.Hostname || (URL.Port() != "" && URL.Port() != strconv.Itoa(config.Port)) {
-		conn.Write([]byte("53 No proxying to other hosts or ports!\r\n"))
-		log.Status = 53
-		return
-	}
+    if !strings.HasPrefix(config.Hostname, "*") {
+      if URL.Hostname() != config.Hostname || (URL.Port() != "" && URL.Port() != strconv.Itoa(config.Port)) {
+          conn.Write([]byte("53 No proxying to other hosts or ports!\r\n"))
+          log.Status = 53
+          return
+      }
+    }  // TODO fix wildcard case
 
 	// Fail if there are dots in the path
 	if strings.Contains(URL.Path, "..") {
@@ -63,7 +65,7 @@ func handleGeminiRequest(conn net.Conn, config Config, accessLogEntries chan Log
 	}
 
 	// Resolve URI path to actual filesystem path
-	path := resolvePath(URL.Path, config)
+	path := resolvePath(URL, config)
 
 	// Paranoid security measures:
 	// Fail ASAP if the URL has mapped to a sensitive file
@@ -165,9 +167,16 @@ func readRequest(conn net.Conn, log *LogEntry, errorLog *log.Logger) (*url.URL, 
 	return URL, nil
 }
 
-func resolvePath(path string, config Config) string {
-	// Handle tildes
-	if strings.HasPrefix(path, "/~") {
+func resolvePath(url *url.URL, config Config) string {
+    // wildcard case
+    path := url.Path
+    hostName := url.Hostname()
+    hostParts := strings.Split(hostName, ".")
+    if strings.HasPrefix(hostName, "*") && len(hostParts) > 2 {
+      username := hostParts[0]
+      path = filepath.Join(config.DocBase, config.HomeDocBase, subdomain, path)
+      path = filepath.Clean(path)
+    } else if !strings.HasPrefix(config.Hostname, "*") && strings.HasPrefix(path, "/~") {
 		bits := strings.Split(path, "/")
 		username := bits[1][1:]
 		new_prefix := filepath.Join(config.DocBase, config.HomeDocBase, username)

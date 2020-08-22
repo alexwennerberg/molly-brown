@@ -182,7 +182,7 @@ examples of the appropriate syntax.
   `1965`).
 * `Hostname`: The hostname to respond to requests for (default value
   `localhost`).  Requests for URLs with other hosts will result in a
-  status 53 (PROXY REQUEST REFUSED) response.
+  status 53 (PROXY REQUEST REFUSED) response. Accepts wildcard hosts.
 * `CertPath`: Path to TLS certificate in PEM format (default value
   `cert.pem`).
 * `KeyPath`: Path to TLS private key in PEM format (default value
@@ -196,6 +196,8 @@ examples of the appropriate syntax.
   actual home directories like you may expect based on experience with
   other server software.  Of course, you can symlink
   `/var/gemini/users/gus/` to `/home/gus/public_gemini/` if you want.
+  If Hostname includes a wildcard, this will route files from username.hostname 
+  instead.
 * `AccessLog`: Path to access log file (default value `access.log`,
   i.e. in the current wrorking directory).  Note that all intermediate
   directories must exist, Molly Brown won't create them for you.
